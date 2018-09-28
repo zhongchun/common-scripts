@@ -8,12 +8,13 @@ some common scripts
 
 ## <span id='2'>Directories</span>
 ```shell
-.
+common-scripts
 ├── README.md
 └── shell
+    ├── remove.sh
     └── run.sh
 
-1 directory, 2 files
+1 directory, 3 files
 ```
 
 
