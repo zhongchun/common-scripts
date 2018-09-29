@@ -22,7 +22,7 @@ function remove()
                 local argv_t=${trash_dir}/$(basename ${argv}).`date '+%Y%m%d%H%M%S%N'`
 
                 # Get the size of the file to be removed
-                local cur_size=`du -k ${argv} | awk -F" " '{print $1}'`
+                local cur_size=`du -s ${argv} | awk -F" " '{print $1}'`
 
                 # The margin of error is 1kb
                 cur_size=$((cur_size + 1))
