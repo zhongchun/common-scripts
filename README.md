@@ -4,7 +4,7 @@
 - [Directories](#2)
 
 ## <span id='1'>What</span>
-some common scripts
+Some common scripts.
 
 ## <span id='2'>Directories</span>
 ```shell
