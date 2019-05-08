@@ -11,10 +11,17 @@ Some common scripts.
 common-scripts
 ├── README.md
 └── shell
-    ├── remove.sh
-    └── run.sh
+    ├── mysql
+    │   ├── export_from_mysql.sh
+    │   └── import_to_mysql.sh
+    └── utils
+        ├── getWeek.sh
+        ├── remove.sh
+        └── run.sh
 
-1 directory, 3 files
+3 directories, 6 files
 ```
 
-
+## How to use
+### rm
+alias rm="$HOME/Tools/util/remove.sh"
