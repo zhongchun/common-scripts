@@ -7,4 +7,4 @@ port=$2
 user=$3
 password=$4
 database=$5
-${mysql_bin} -h$1 -P$2 -u$3 -p$4 -D$5 -N -e "set character set utf8; select * from guiding_screen_render"  > guiding_screen_render.txt
+${mysql_bin} -h$host -P$port -u$user -p$password -D$database -N -e "set character set utf8; select * from guiding_screen_render"  > guiding_screen_render.txt
