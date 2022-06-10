@@ -1,9 +1,9 @@
 # common-scripts
 
-- [What](#1)
+- [Introduction](#1)
 - [Directories](#2)
 
-## <span id='1'>What</span>
+## <span id='1'>Introduction</span>
 Some common scripts.
 
 ## <span id='2'>Directories</span>
