@@ -24,4 +24,7 @@ common-scripts
 
 ## How to use
 ### rm
+Should add `alias` as follows in your `.bashrc` or `.zshrc` or other shell settings file.
+```shell
 alias rm="$HOME/Tools/util/remove.sh"
+```
