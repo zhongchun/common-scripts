@@ -2,6 +2,7 @@
 
 - [Introduction](#1)
 - [Directories](#2)
+- [How to use](#3)
 
 ## <span id='1'>Introduction</span>
 Some common scripts.
