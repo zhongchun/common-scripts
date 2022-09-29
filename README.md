@@ -23,7 +23,7 @@ common-scripts
 3 directories, 6 files
 ```
 
-## How to use
+## <span id='3'>How to use</span>
 ### rm
 Should add `alias` as follows in your `.bashrc` or `.zshrc` or other shell settings file.
 ```shell
