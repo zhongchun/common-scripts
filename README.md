@@ -25,7 +25,9 @@ common-scripts
 
 ## <span id='3'>How to use</span>
 ### Create a backup `rm`
-Should add `alias` as follows in your `.bashrc` or `.zshrc` or other shell settings file.
+1. Add execute permission `chmod +x remove.sh`
+2. Should add `alias` as follows in your `.bashrc` or `.zshrc` or other shell settings file.
 ```shell
 alias rm="$HOME/Tools/util/remove.sh"
 ```
+3. And then `source .bashrc` or `source .zshrc`
