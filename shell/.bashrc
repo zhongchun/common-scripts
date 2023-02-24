@@ -45,6 +45,21 @@ function pyenv() {
 eval "$(pyenv init -)"
 eval "$(pyenv virtualenv-init -)"
 
+# pyenv install python with taobao source
+# you can use like: pyinstall 3.9.10
+function pyinstall() {
+    v=$1
+    echo "Installing Python" $v
+    cache_dir="$HOME/.pyenv/cache"
+    echo "Cache dir: $cache_dir"
+    if [ ! -d $cache_dir ]; then
+        echo "Creating cache dir: $cache_dir"
+        mkdir -p $cache_dir
+    fi
+    curl -L https://npm.taobao.org/mirrors/python/$v/Python-$v.tar.xz -o $cache_dir/Python-$v.tar.xz
+    pyenv install $v
+}
+
 alias pylint="yapf --style .style.yapf --recursive --parallel -i "
 alias proxyon="export http_proxy='http://127.0.0.1:9000'; export https_proxy='http://127.0.0.1:9000'"
 alias proxyoff="unset http_proxy; unset https_proxy"
