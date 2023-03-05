@@ -32,6 +32,5 @@ alias rm="$HOME/Tools/util/remove.sh"
 ```
 3. And then execute `source .bashrc` or `source .zshrc`
 
-More will be continued.
-
+To be continued.
 
