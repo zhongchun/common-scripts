@@ -30,4 +30,8 @@ common-scripts
 ```shell
 alias rm="$HOME/Tools/util/remove.sh"
 ```
-3. And then `source .bashrc` or `source .zshrc`
+3. And then execute `source .bashrc` or `source .zshrc`
+
+More will be continued.
+
+
