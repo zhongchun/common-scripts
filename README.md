@@ -5,7 +5,7 @@
 - [How to use](#3)
 
 ## <span id='1'>Introduction</span>
-Some common scripts.
+Some common used scripts.
 
 ## <span id='2'>Directories</span>
 ```shell
