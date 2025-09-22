@@ -24,13 +24,13 @@ A powerful tool similar to `pyenv local` for managing Conda environments in dire
 
 ```bash
 # Download the script
-curl -O https://raw.githubusercontent.com/your-repo/conda-local/main/conda-local.sh
+curl -O https://github.com/zhongchun/common-scripts/blob/master/shell/conda/conda-local
 
 # Make it executable
-chmod +x conda-local.sh
+chmod +x conda-local
 
 # Optional: Move to a directory in your PATH
-sudo mv conda-local.sh /usr/local/bin/conda-local
+sudo mv conda-local /usr/local/bin/conda-local
 ```
 
 ### 2. Install direnv (Recommended)
@@ -216,7 +216,7 @@ conda-local myenv --create
 #### 4. "Permission denied"
 ```bash
 # Make script executable
-chmod +x conda-local.sh
+chmod +x conda-local
 ```
 
 ### Debug Mode
@@ -224,7 +224,7 @@ chmod +x conda-local.sh
 For debugging, you can run the script with bash debugging:
 
 ```bash
-bash -x conda-local.sh myenv
+bash -x conda-local myenv
 ```
 
 ## 🔄 Migration from pyenv
@@ -247,11 +247,11 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-repo/conda-local.git
-cd conda-local
+git clone https://github.com/zhongchun/common-scripts.git
+cd common-scripts/shell/conda
 
 # Test the script
-./conda-local.sh --help
+./conda-local --help
 ```
 
 ## 📄 License
