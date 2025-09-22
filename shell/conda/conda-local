@@ -1,0 +1,353 @@
+#! /usr/bin/env bash
+# =============================================================================
+# conda-local: A tool similar to `pyenv local` for setting up Conda environments in directories
+# Command: conda-local <environment-name> [options]
+# Features: Auto-create .conda-env and .envrc, auto-detect conda.sh, prompt direnv allow
+# =============================================================================
+
+set -euo pipefail
+
+# Script version
+VERSION="1.0.0"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Logging functions
+log_info() { echo -e "${BLUE}ℹ️  $1${NC}"; }
+log_success() { echo -e "${GREEN}✅ $1${NC}"; }
+log_warning() { echo -e "${YELLOW}⚠️  $1${NC}"; }
+log_error() { echo -e "${RED}❌ $1${NC}"; }
+
+# Help function
+show_help() {
+  cat << EOF
+conda-local v$VERSION - A tool similar to 'pyenv local' for Conda environments
+
+USAGE:
+    conda-local <environment-name> [options]
+    conda-local --help
+    conda-local --remove
+    conda-local --list
+
+OPTIONS:
+    --help, -h          Show this help message
+    --remove, -r        Remove conda-local configuration from current directory
+    --list, -l          List all conda environments
+    --create, -c        Create environment if it doesn't exist
+    --shell <shell>     Specify shell type (bash/zsh/fish) for direnv hook
+
+EXAMPLES:
+    conda-local myenv                    # Set up conda-local for 'myenv'
+    conda-local myenv --create           # Create environment if it doesn't exist
+    conda-local --remove                 # Remove conda-local configuration
+    conda-local --list                   # List available environments
+
+FEATURES:
+    - Auto-detects conda installation
+    - Creates .conda-env and .envrc files
+    - Integrates with direnv for automatic activation
+    - Supports multiple conda distributions (Anaconda, Miniconda)
+    - Cross-platform compatibility
+
+EOF
+}
+
+# Parse command line arguments
+ENV_NAME=""
+CREATE_ENV=false
+REMOVE_CONFIG=false
+LIST_ENVS=false
+SHELL_TYPE=""
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --help|-h)
+      show_help
+      exit 0
+      ;;
+    --remove|-r)
+      REMOVE_CONFIG=true
+      shift
+      ;;
+    --list|-l)
+      LIST_ENVS=true
+      shift
+      ;;
+    --create|-c)
+      CREATE_ENV=true
+      shift
+      ;;
+    --shell)
+      SHELL_TYPE="$2"
+      shift 2
+      ;;
+    -*)
+      log_error "Unknown option: $1"
+      echo "Use --help for usage information"
+      exit 1
+      ;;
+    *)
+      if [ -z "$ENV_NAME" ]; then
+        ENV_NAME="$1"
+      else
+        log_error "Multiple environment names provided"
+        exit 1
+      fi
+      shift
+      ;;
+  esac
+done
+
+# Handle special commands
+if [ "$REMOVE_CONFIG" = true ]; then
+  if [ -f ".conda-env" ]; then
+    rm -f ".conda-env"
+    log_success "Removed .conda-env file"
+  fi
+  if [ -f ".envrc" ]; then
+    rm -f ".envrc"
+    log_success "Removed .envrc file"
+  fi
+  log_success "conda-local configuration removed from current directory"
+  exit 0
+fi
+
+if [ "$LIST_ENVS" = true ]; then
+  # Try to detect conda and list environments
+  if command -v conda &> /dev/null; then
+    echo "Available Conda environments:"
+    conda env list
+  else
+    log_warning "Conda not found in PATH. Please ensure conda is installed and accessible."
+  fi
+  exit 0
+fi
+
+# Check if environment name is provided for main functionality
+if [ -z "$ENV_NAME" ]; then
+  log_error "Environment name is required"
+  echo "Use --help for usage information"
+  exit 1
+fi
+
+CONDA_ENV_NAME="$ENV_NAME"
+CURRENT_DIR=$(pwd)
+CONDA_ENV_FILE=".conda-env"
+ENVRC_FILE=".envrc"
+
+# Cleanup function
+cleanup() {
+  if [ -f "$CONDA_ENV_FILE" ]; then
+    rm -f "$CONDA_ENV_FILE"
+  fi
+  if [ -f "$ENVRC_FILE" ]; then
+    rm -f "$ENVRC_FILE"
+  fi
+}
+
+# Set cleanup trap
+trap cleanup EXIT
+
+# --- 1. Create .conda-env file ---
+log_info "Creating .conda-env file..."
+if echo "$CONDA_ENV_NAME" > "$CONDA_ENV_FILE"; then
+  log_success "Created .conda-env file with content: $CONDA_ENV_NAME"
+else
+  log_error "Failed to create .conda-env file"
+  exit 1
+fi
+
+# --- 2. Auto-detect conda.sh path ---
+detect_conda_sh() {
+  local paths=(
+    "$HOME/miniconda3/etc/profile.d/conda.sh"
+    "$HOME/anaconda3/etc/profile.d/conda.sh"
+    "$HOME/opt/miniconda3/etc/profile.d/conda.sh"
+    "$HOME/opt/anaconda3/etc/profile.d/conda.sh"
+    "/opt/anaconda3/etc/profile.d/conda.sh"
+    "/opt/homebrew/Caskroom/miniconda3/etc/profile.d/conda.sh"
+    "/opt/homebrew/anaconda3/etc/profile.d/conda.sh"
+    "/usr/local/miniconda3/etc/profile.d/conda.sh"
+    "/usr/local/anaconda3/etc/profile.d/conda.sh"
+  )
+
+  # First, try predefined paths
+  for p in "${paths[@]}"; do
+    if [ -f "$p" ]; then
+      echo "$p"
+      return 0
+    fi
+  done
+
+  # If not found, try to derive from 'which conda'
+  if command -v conda &> /dev/null; then
+    local conda_path
+    conda_path=$(which conda)
+    if [ -n "$conda_path" ]; then
+      # Convert conda binary path to conda.sh path
+      # e.g., /home/user/miniconda3/bin/conda -> /home/user/miniconda3/etc/profile.d/conda.sh
+      local conda_dir
+      conda_dir=$(dirname "$(dirname "$conda_path")")
+      local conda_sh_path="$conda_dir/etc/profile.d/conda.sh"
+      if [ -f "$conda_sh_path" ]; then
+        echo "$conda_sh_path"
+        return 0
+      fi
+    fi
+  fi
+
+  return 1
+}
+
+CONDA_SH_PATH=$(detect_conda_sh)
+
+if [ -z "$CONDA_SH_PATH" ]; then
+  echo "⚠️  Failed to auto-detect conda.sh file."
+  echo "   Please ensure you have Conda installed (Miniconda or Anaconda)"
+  echo "   Common paths include:"
+  echo "     - $HOME/miniconda3/etc/profile.d/conda.sh"
+  echo "     - $HOME/anaconda3/etc/profile.d/conda.sh"
+  echo ""
+  echo "   You can manually specify the path, or run the following command to find conda installation:"
+  echo "     which conda"
+  echo "     Then find the path: .../etc/profile.d/conda.sh"
+  echo ""
+  exit 1
+fi
+
+log_success "Auto-detected conda.sh path: $CONDA_SH_PATH"
+
+# --- 2.5. Check if conda environment exists ---
+# Temporarily load conda to check environment
+source "$CONDA_SH_PATH"
+
+# Function to check if environment exists
+env_exists() {
+  conda env list | grep -q "^$CONDA_ENV_NAME "
+}
+
+if ! env_exists; then
+  if [ "$CREATE_ENV" = true ]; then
+    log_info "Environment '$CONDA_ENV_NAME' does not exist. Creating it now..."
+    if conda create -n "$CONDA_ENV_NAME" -y; then
+      log_success "Successfully created environment: $CONDA_ENV_NAME"
+    else
+      log_error "Failed to create environment: $CONDA_ENV_NAME"
+      exit 1
+    fi
+  else
+    log_warning "Conda environment '$CONDA_ENV_NAME' does not exist"
+    echo "   You can:"
+    echo "     1. Create it manually: conda create -n $CONDA_ENV_NAME"
+    echo "     2. Use --create flag: conda-local $CONDA_ENV_NAME --create"
+    echo ""
+    read -p "Continue creating config files anyway?(y/n) " REPLY
+    echo ""
+    if [[ ! "$REPLY" =~ ^[Yy]$ ]]; then
+      log_error "Operation cancelled"
+      exit 1
+    fi
+  fi
+else
+  log_success "Environment '$CONDA_ENV_NAME' exists"
+fi
+
+# --- 3. Create .envrc file ---
+cat > "$ENVRC_FILE" <<EOF
+# =========================================
+# .envrc - Auto-generated by conda-local
+# Function: Auto-activate Conda environment for current directory
+# =========================================
+
+# Load Conda
+source "$CONDA_SH_PATH"
+
+# Check .conda-env
+if [ -f .conda-env ]; then
+    conda_env=\$(cat .conda-env)
+    echo "🔍 Detected .conda-env, activating Conda environment: \$conda_env"
+    conda activate "\$conda_env"
+else
+    echo "ℹ️  .conda-env file not found, not activating Conda environment"
+fi
+EOF
+
+log_success "Created .envrc file, will activate Conda environment: $CONDA_ENV_NAME"
+
+# --- 4. Handle direnv configuration ---
+# Detect shell type if not specified
+if [ -z "$SHELL_TYPE" ]; then
+  if [ -n "${ZSH_VERSION:-}" ]; then
+    SHELL_TYPE="zsh"
+  elif [ -n "${BASH_VERSION:-}" ]; then
+    SHELL_TYPE="bash"
+  elif [ -n "${FISH_VERSION:-}" ]; then
+    SHELL_TYPE="fish"
+  else
+    SHELL_TYPE="bash"  # Default fallback
+  fi
+fi
+
+# Function to get shell config file
+get_shell_config() {
+  case "$SHELL_TYPE" in
+    zsh) echo "$HOME/.zshrc" ;;
+    bash) echo "$HOME/.bashrc" ;;
+    fish) echo "$HOME/.config/fish/config.fish" ;;
+    *) echo "$HOME/.bashrc" ;;
+  esac
+}
+
+if ! command -v direnv &> /dev/null; then
+  log_warning "direnv not detected. Please install direnv first:"
+  echo ""
+  echo "   macOS: brew install direnv"
+  echo "   Linux: curl -sfL https://direnv.net/install.sh | bash"
+  echo "   Or visit: https://direnv.net/docs/installation.html"
+  echo ""
+  
+  local config_file
+  config_file=$(get_shell_config)
+  echo "   Then add the following to your $config_file:"
+  case "$SHELL_TYPE" in
+    zsh) echo '      eval "$(direnv hook zsh)"' ;;
+    bash) echo '      eval "$(direnv hook bash)"' ;;
+    fish) echo '      direnv hook fish | source' ;;
+  esac
+  echo ""
+  echo "   After installation and configuration, please manually run:"
+  echo "      direnv allow ."
+else
+  log_info "Auto-running 'direnv allow .' to enable auto-loading..."
+  if direnv allow .; then
+    log_success "Ran direnv allow ."
+  else
+    log_warning "Failed to run direnv allow . - you may need to run it manually"
+  fi
+fi
+
+# Successfully completed, disable cleanup trap
+trap - EXIT
+
+# --- 5. Final summary ---
+echo ""
+log_success "Setup completed successfully!"
+echo ""
+echo "📋 Summary:"
+echo "   • Environment: $CONDA_ENV_NAME"
+echo "   • Config files: .conda-env, .envrc"
+echo "   • Shell type: $SHELL_TYPE"
+echo "   • Conda path: $CONDA_SH_PATH"
+echo ""
+echo "🎉 Now, every time you cd into this directory, it will automatically activate Conda environment: $CONDA_ENV_NAME"
+echo "   Similar to pyenv local experience!"
+echo ""
+echo "💡 Tips:"
+echo "   • Use 'conda-local --remove' to remove configuration"
+echo "   • Use 'conda-local --list' to see available environments"
+echo "   • Use 'conda-local --help' for more options"
